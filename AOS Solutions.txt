@@ -1,0 +1,1309 @@
+﻿KES’
+Pratibha College of Commerce & Computer Studies Pune - 19
+Class :-FYMSc(CS) Practical Slips  Solutions
+Advanced OS
+2. To generate parent process to write unnamed pipe and will read
+from it.
+pipe() System call
+Prerequisite : I/O System calls
+Conceptually, a pipe is a connection between two processes, such that
+the standard output from one process becomes the standard input of the
+other process. In UNIX Operating System, Pipes are useful for
+communication between related processes(inter-process
+communication).
+Pipe is one-way communication only i.e we can use a pipe such that One
+process write to the pipe, and the other process reads from the pipe. It
+opens a pipe, which is an area of main memory that is treated as
+a “virtual file”.
+The pipe can be used by the creating process, as well as all its child
+processes, for reading and writing. One process can write to this “virtual
+file” or pipe and another related process can read from it.
+If a process tries to read before something is written to the pipe, the
+process is suspended until something is written.
+The pipe system call finds the first two available positions in the
+process’s open file table and allocates them for the read and write ends
+of the pipe.
+
+SYNTAX
+int pipe(intfds[2]);
+Parameters :
+fd[0] will be the fd(file descriptor) for the
+read end of pipe.
+fd[1] will be the fd for the write end of pipe.
+Returns : 0 on Success.
+-1 on error.
+Pipes behave FIFO(First in First out), Pipe behave like a queue data
+structure. Size of read and write don’t have to match here. We can
+write 512 bytes at a time but we can read only 1 byte at a time in a pipe.
+// C program to illustrate
+// pipe system call in C
+#include <stdio.h>
+#include <unistd.h>
+#define MSGSIZE 16
+char* msg1 = "hello, world #1";
+char* msg2 = "hello, world #2";
+char* msg3 = "hello, world #3";
+int main()
+{
+
+char inbuf[MSGSIZE];
+int p[2], i;
+if (pipe(p) < 0)
+exit(1);
+/* continued */
+/* write pipe */
+write(p[1], msg1, MSGSIZE);
+write(p[1], msg2, MSGSIZE);
+write(p[1], msg3, MSGSIZE);
+for (i = 0; i < 3; i++) {
+/* read pipe */
+read(p[0], inbuf, MSGSIZE);
+printf("% s\n", inbuf);
+}
+return 0;
+}
+Output:
+hello, world #1
+hello, world #2
+hello, world #3
+Example Programs
+Following are some example programs.
+Example program 1 − Program to write and read two messages using
+pipe.
+Algorithm
+Step 1 − Create a pipe.
+Step 2 − Send a message to the pipe.
+
+Step 3 − Retrieve the message from the pipe and write it to the standard
+output.
+Step 4 − Send another message to the pipe.
+Step 5 − Retrieve the message from the pipe and write it to the standard
+output.
+Note − Retrieving messages can also be done after sending all messages.
+Source Code: simplepipe.c
+#include<stdio.h>
+#include<unistd.h>
+int main(){
+intpipefds[2];
+intreturnstatus;
+charwritemessages[2][20]={"Hi","Hello"};
+charreadmessage[20];
+returnstatus= pipe(pipefds);
+if(returnstatus==-1){
+printf("Unable to create pipe\n");
+return1;
+}
+printf("Writing to pipe - Message 1 is %s\n",writemessages[0]);
+write(pipefds[1],writemessages[0],sizeof(writemessages[0]));
+read(pipefds[0],readmessage,sizeof(readmessage));
+printf("Reading from pipe - Message 1 is %s\n",readmessage);
+printf("Writing to pipe - Message 2 is %s\n",writemessages[0]);
+write(pipefds[1],writemessages[1],sizeof(writemessages[0]));
+read(pipefds[0],readmessage,sizeof(readmessage));
+printf("Reading from pipe - Message 2 is %s\n",readmessage);
+return0;
+}
+Note − Ideally, return status needs to be checked for every system call.
+To simplify the process, checks are not done for all the calls.
+Execution Steps
+
+Compilation
+gcc -o simplepipesimplepipe.c
+Execution/Output
+Writing to pipe - Message 1 is Hi
+Reading from pipe - Message 1 is Hi
+Writing to pipe - Message 2 is Hi
+Reading from pipe - Message 2 is Hell
+Example program 2 − Program to write and read two messages through
+the pipe using the parent and the child processes.
+Algorithm
+Step 1 − Create a pipe.
+Step 2 − Create a child process.
+Step 3 − Parent process writes to the pipe.
+Step 4 − Child process retrieves the message from the pipe and writes it
+to the standard output.
+Step 5 − Repeat step 3 and step 4 once again.
+Source Code: pipewithprocesses.c
+#include<stdio.h>
+#include<unistd.h>
+int main(){
+intpipefds[2];
+intreturnstatus;
+intpid;
+charwritemessages[2][20]={"Hi","Hello"};
+charreadmessage[20];
+returnstatus= pipe(pipefds);
+if(returnstatus==-1){
+printf("Unable to create pipe\n");
+return1;
+}
+pid= fork();
+// Child process
+if(pid==0){
+
+read(pipefds[0],readmessage,sizeof(readmessage));
+printf("Child Process - Reading from pipe - Message 1 is
+%s\n",readmessage);
+read(pipefds[0],readmessage,sizeof(readmessage));
+printf("Child Process - Reading from pipe - Message 2 is
+%s\n",readmessage);
+}else{//Parent process
+printf("Parent Process - Writing to pipe - Message 1 is
+%s\n",writemessages[0]);
+write(pipefds[1],writemessages[0],sizeof(writemessages[0]));
+printf("Parent Process - Writing to pipe - Message 2 is
+%s\n",writemessages[1]);
+write(pipefds[1],writemessages[1],sizeof(writemessages[1]));
+}
+return0;
+}
+Execution Steps
+Compilation
+gccpipewithprocesses.c -o pipewithprocesses
+Execution
+Parent Process - Writing to pipe - Message 1 is Hi
+Parent Process - Writing to pipe - Message 2 is Hello
+Child Process - Reading from pipe - Message 1 is Hi
+Child Process - Reading from pipe - Message 2 is Hello
+
+3. To create a file with hole in it.
+File holes are the empty spaces in file, which, however, doesn't take
+up any disk space and contains null bytes. Therefore, the file size is
+larger than its actual size on disk.
+#include<unistd.h>
+#include<sys/types.h>
+#include<stdio.h>
+#include<fcntl.h>
+int main(intargc,constchar*argv[])
+{
+charrandom_garbage[8192];/* Don't even bother to initialize */
+intfd=-1;
+if(argc<2){
+fprintf(stderr,"Usage: %s <filename>\n",argv[0]);
+return1;
+}
+fd= open(argv[1], O_WRONLY | O_CREAT | O_TRUNC,0666);
+if(fd<0){
+perror("Can't open file: ");
+return2;
+}
+write(fd,random_garbage,8192);
+lseek(fd,5*4096, SEEK_CUR);
+write(fd,random_garbage,8192);
+close(fd);
+return0;
+}
+Or
+#include"apue.h"
+#include<fcntl.h>
+char    buf1[]="abcdefghij";
+
+char    buf2[]="ABCDEFGHIJ";
+int
+main(void)
+{
+intfd;
+if((fd=creat("file.hole", FILE_MODE))<0)
+printf("creat error");
+if(write(fd, buf1,10)!=10)
+printf("buf1 write error");
+/* offset now = 10 */
+if(lseek(fd,16384, SEEK_SET)==-1)
+printf("lseek error");
+/* offset now = 16384 */
+if(write(fd, buf2,10)!=10)
+printf("buf2 write error");
+/* offset now = 16394 */
+exit(0);
+}
+
+4. Write a C program to list for every file in a directory, its inode
+number and file name.
+AIM:
+14.Write  a C program to list for every file in a directory,itsinode
+number and file name.
+Program:
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+main(intargc, char *argv[])
+{
+char d[50];
+if(argc==2)
+{
+bzero(d,sizeof(d));
+strcat(d,"ls ");
+strcat(d,"-i ");
+strcat(d,argv[1]);
+system(d);
+}
+else
+printf("\nInvalid No. of inputs");
+}
+output:
+student@ubuntu:~$ mkdirdd
+student@ubuntu:~$ cd dd
+student@ubuntu:~/dd$ cat >f1
+hello
+
+^z
+student@ubuntu:~/dd$ cd
+student@ubuntu:~$gcc -o flist.outflist.c
+student@ubuntu:~$./flist.outdd
+hello
+46490 f1
+5 .To handle two way communication between parent and child
+using Pipe :Two-way Communication Using Pipes
+Pipe communication is viewed as only one-way communication i.e.,
+either the parent process writes and the child process reads or vice-versa
+but not both. However, what if both the parent and the child needs to
+write and read from the pipes simultaneously, the solution is a two-way
+communication using pipes. Two pipes are required to establish two-
+way communication.
+Following are the steps to achieve two-way communication −
+Step 1 − Create two pipes. First one is for the parent to write and child
+to read, say as pipe1. Second one is for the child to write and parent to
+read, say as pipe2.
+Step 2 − Create a child process.
+Step 3 − Close unwanted ends as only one end is needed for each
+communication.
+Step 4 − Close unwanted ends in the parent process, read end of pipe1
+and write end of pipe2.
+Step 5 − Close the unwanted ends in the child process, write end of
+pipe1 and read end of pipe2.
+Step 6 − Perform the communication as required.
+
+Achieving two-way communication using pipes.
+Algorithm
+Step 1 − Create pipe1 for the parent process to write and the child
+process to read.
+Step 2 − Create pipe2 for the child process to write and the parent
+process to read.
+Step 3 − Close the unwanted ends of the pipe from the parent and child
+side.
+Step 4 − Parent process to write a message and child process to read and
+display on the screen.
+Step 5 − Child process to write a message and parent process to read and
+display on the screen.
+Source Code: twowayspipe.c
+#include<stdio.h>
+#include<unistd.h>
+int main(){
+int pipefds1[2], pipefds2[2];
+int returnstatus1, returnstatus2;
+intpid;
+char pipe1writemessage[20]="Hi";
+char pipe2writemessage[20]="Hello";
+charreadmessage[20];
+returnstatus1 =pipe(pipefds1);
+
+if(returnstatus1 ==-1){
+printf("Unable to create pipe 1 \n");
+return1;
+}
+returnstatus2 =pipe(pipefds2);
+if(returnstatus2 ==-1){
+printf("Unable to create pipe 2 \n");
+return1;
+}
+pid= fork();
+if(pid!=0)// Parent process {
+close(pipefds1[0]);// Close the unwanted pipe1 read side
+close(pipefds2[1]);// Close the unwanted pipe2 write side
+printf("In Parent: Writing to pipe 1 - Message is %s\n",
+pipe1writemessage);
+write(pipefds1[1], pipe1writemessage,sizeof(pipe1writemessage));
+read(pipefds2[0],readmessage,sizeof(readmessage));
+printf("In Parent: Reading from pipe 2 - Message is
+%s\n",readmessage);
+}else{//child process
+close(pipefds1[1]);// Close the unwanted pipe1 write side
+close(pipefds2[0]);// Close the unwanted pipe2 read side
+read(pipefds1[0],readmessage,sizeof(readmessage));
+printf("In Child: Reading from pipe 1 - Message is %s\n",readmessage);
+printf("In Child: Writing to pipe 2 - Message is %s\n",
+pipe2writemessage);
+write(pipefds2[1], pipe2writemessage,sizeof(pipe2writemessage));
+}
+return0;
+}
+Execution Steps
+Compilation
+
+gcctwowayspipe.c -o twowayspipe
+Execution
+In Parent: Writing to pipe 1 - Message is Hi
+In Child: Reading from pipe 1 - Message is Hi
+In Child: Writing to pipe 2 - Message is Hello
+In Parent: Reading from pipe 2 - Message is Hello
+
+Assignment No 6:
+Print the type of file where file name accepted through Command Line.
+#include <stdio.h>
+int main ( int argc, char *argv[] )
+{
+if ( argc != 2 ) /* argc should be 2 for correct execution */
+{
+/* We print argv[0] assuming it is the program name */
+printf( "usage: %s filename", argv[0] );
+}
+else
+{
+// We assume argv[1] is a filename to open
+FILE *file = fopen( argv[1], "r" );
+/* fopen returns 0, the NULL pointer, on failure */
+if ( file == 0 )
+{
+printf( "Could not open file\n" );
+}
+else
+{
+int x;
+/* read one character at a time from file, stopping at EOF, which
+indicates the end of the file.  Note that the idiom of "assign
+to a variable, check the value" used below works because
+the assignment statement evaluates to the value assigned. */
+while  ( ( x = fgetc( file ) ) != EOF )
+{
+
+printf( "%c", x );
+}
+fclose( file );
+}
+}
+}
+This program is fairly short, but it incorporates the full version of main
+and even performs a useful function. It first checks to ensure the user
+added the second argument, theoretically a file name. The program then
+checks to see if the file is valid by trying to open it. This is a standard
+operation, and if it results in the file being opened, then the return value
+of fopen will be a valid FILE*; otherwise, it will be 0, the NULL
+pointer. After that, we just execute a loop to print out one character at a
+time from the file. The code is self-explanatory, but is littered with
+comments; you should have no trouble understanding its operation this
+far into the tutorial. :-)
+Assignment No : 7
+To demonstrate the use of atexit() function
+#include <stdio.h>
+#include <stdlib.h>
+void functionA () {
+printf("This is functionA\n");
+}
+int main () {
+/* register the termination function */
+atexit(functionA );
+printf("Starting  main program...\n");
+
+printf("Exiting main program...\n");
+return(0);
+}
+After Complitation :
+Starting main program...
+Exiting main program...
+This is functionA
+
+Assignment No :8
+Open a file goes to sleep for 15 seconds before terminating.
+#include <stdio.h>
+//to use 'delay()'
+#include <dos.h>
+int main()
+{
+// message for user
+printf("After printing this message the program will get end in next
+5 seconds \n");
+// delay the process for 5 seconds as it takes integer value in
+milliseconds.
+delay(5000);
+return 0;
+}
+
+dos.h - sleep() function Example in C
+#include <stdio.h>
+//to use 'sleep()
+#include <dos.h>
+int main()
+{
+// message for user.
+printf("After printing this message the program will get delay for
+next 15 seconds\n");
+// to terminate the process for next 15 seconds.
+sleep(15);
+return 0;
+}
+Output
+Assignment No :9
+
+To print the size of the file.
+/*
+* C Program to Find the Size of File using File Handling Function
+*/
+#include <stdio.h>
+void main(int argc, char **argv)
+{
+FILE *fp;
+char ch;
+int size = 0;
+fp = fopen(argv[1], "r");
+if (fp == NULL)
+printf("\nFile unable to open ");
+else
+printf("\nFile opened ");
+fseek(fp, 0, 2);                                                    /* file pointer at the end of file */
+size = ftell(fp);                                                   /* take a position of file pointer un size variable */
+printf("The size of given file is : %d\n", size);
+fclose(fp);
+
+}
+$ vi file10.c
+$ cc file10.c
+$ a.out myvmlinux
+File opened The size of given file is : 3791744
+Assignment No 10:
+
+Read the current directory and display the name of the files, no of files
+in current directory.
+#include <stdio.h>
+#include <dirent.h>
+int main(void)
+{
+struct dirent *de;                                                          // Pointer for directory entry
+// opendir() returns a pointer of DIR type.
+DIR *dr = opendir(".");
+if (dr == NULL)  // opendir returns NULL if couldn't open directory
+{
+printf("Could not open current directory" );
+return 0;
+}
+// for readdir()
+while ((de = readdir(dr)) != NULL)
+
+printf("%s\n", de->d_name);
+closedir(dr);
+return 0;
+}
+Assignment No :11
+
+Write a C program to implement the following unix/linux command (use
+fork, pipe and exec system call) ls -l | wc -l
+Solution :
+ls | wc command : Using ls|wc, we can count new lines, words and
+letters of all files of current directory. We can see from the following
+after execution of the code we get same results.
+Prerequisites :ls command | wc command | piping in linux
+Approach : First, we have to use pipe for inter process communication
+over an array where a[0] is used for reading and a[1] is used for writing.
+We can replicate the process using fork. In the parent process, standard
+output is closed so that output of ls command will go to a[0] and
+similarly standard input is closed in children process. Now, if we run the
+program output will be as same as command of linux ls|wc.
+// C code to implement ls | wc command
+#include <stdio.h>
+#include <stdlib.h>
+#include <fcntl.h>
+#include<errno.h>
+#include<sys/wait.h>
+#include <unistd.h>
+int main(){
+// array of 2 size a[0] is for
+// reading and a[1] is for
+// writing over a pipe
+int a[2];
+// using pipe for inter
+
+// process communication
+pipe(a);
+if(!fork())
+{
+// closing normal stdout
+close(1);
+// making stdout same as a[1]
+dup(a[1]);
+// closing reading part of pipe
+// we don't need of it at this time
+close(a[0]);
+// executing ls
+execlp("ls","ls",NULL);
+}
+else
+{
+// closing normal stdin
+close(0);
+// making stdin same as a[0]
+dup(a[0]);
+// closing writing part in parent,
+// we don't need of it at this time
+close(a[1]);
+// executing wc
+execlp("wc","wc",NULL);
+}
+}
+
+Assignment No :12
+Write a C program to display all the files from current directory which
+are created in particular month
+#include <stdio.h>
+#include <dirent.h>
+int main(void)
+{
+struct dirent *de;                                                        // Pointer for directory entry
+// opendir() returns a pointer of DIR type.
+DIR *dr = opendir(".");
+if (dr == NULL)  // opendir returns NULL if couldn't open directory
+{
+printf("Could not open current directory" );
+return 0;
+}
+// for readdir()
+while ((de = readdir(dr)) != NULL)
+
+printf("%s\n", de->d_name);
+closedir(dr);
+return 0;
+}
+
+Assignment No 13:
+Write a C program to display all the files from current directory whose
+size is greater that n Bytes Where n is accept from user
+Solution :
+The idea is to use fseek() in C and ftell in C. Using fseek(), we move file
+pointer to end, then using ftell(), we find its position which is actually
+size in bytes.
+filter_none
+// C program to find the size of file
+#include <stdio.h>
+long int findSize(char file_name[])
+{
+// opening the file in read mode
+FILE* fp = fopen(file_name, "r");
+// checking if the file exist or not
+if (fp == NULL) {
+printf("File Not Found!\n");
+return -1;
+}
+
+fseek(fp, 0L, SEEK_END);
+// calculating the size of the file
+long int res = ftell(fp);
+// closing the file
+fclose(fp);
+return res;
+}
+// Driver code
+int main()
+{
+char file_name[] = { "a.txt" };
+long int res = findSize(file_name);
+if (res != -1)
+printf("Size of the file is %ld bytes \n", res);
+return 0;
+}
+
+Assignment No : 14
+Write a C program to implement the following unix/linux command i. ls
+-l > output.txt
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+int main()
+{
+int pid;                                                                //process id
+pid = fork();                                                           //create another process
+if ( pid < 0 )
+{                                                                       //fail
+printf(“\nFork failed\n”);
+exit (-1);
+}
+else if ( pid == 0 )
+{                                                                       //child
+                                                                        execlp ( “/bin/ls”, “ls”, “-l”, NULL );  //execute ls
+}
+else
+{                                                                       //parent
+wait (NULL);                                                            //wait for child
+printf(“\nchild complete\n”);
+exit (0);
+}
+}
+Output:
+guest-glcbIs@ubuntu:~$gcc -o lsc.out lsc.c
+guest-glcbIs@ubuntu:~$./lsc.out
+
+total 100
+-rwxrwx—x 1 guest-glcbls guest-glcbls 140 2012-07-06 14:55 f1
+drwxrwxr-x 4 guest-glcbls guest-glcbls 140 2012-07-06 14:40 dir1
+child complete
+
+Assigment No 15:
+Write a C program which display the information of a given file similar
+to given by the unix / linux command ls -l
+#include <stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <sys/wait.h>
+#include <stdlib.h>
+int main()
+{
+int pid;                                                                  //process id
+pid = fork();                                                             //create another process
+if ( pid < 0 )
+{                                                                         //fail
+printf(“\nFork failed\n”);
+exit (-1);
+}
+else if ( pid == 0 )
+{                                                                         //child
+                                                                          execlp ( “/bin/ls”, “ls”, “-l”, NULL );  //execute ls
+}
+else
+{                                                                         //parent
+wait (NULL);                                                              //wait for child
+printf(“\nchild complete\n”);
+exit (0);
+}
+}
+Output:
+guest-glcbIs@ubuntu:~$gcc -o lsc.out lsc.c
+
+guest-glcbIs@ubuntu:~$./lsc.out
+total 100
+-rwxrwx—x 1 guest-glcbls guest-glcbls 140 2012-07-06 14:55 f1
+drwxrwxr-x 4 guest-glcbls guest-glcbls 140 2012-07-06 14:40 dir1
+child complete
+
+Assignment No :16
+Write a C program that behaves like a shell (command interpreter). It
+has its own prompt say “NewShell$”. Any normal shell command is
+executed from your shell by starting a child process to execute the
+system program corresponding to the command. It should additionally
+interpret the following command. i) count c - print number of characters
+in file ii) count w - print number of words in file iii) count l - print
+number of lines in file
+Solution :
+All three in one program :
+#include <stdio.h>
+#include <stdlib.h>
+int main()
+{
+FILE * file;
+char path[100];
+char ch;
+int characters, words, lines;
+/* Input path of files to merge to third file */
+printf("Enter source file path: ");
+
+scanf("%s", path);
+/* Open source files in 'r' mode */
+file = fopen(path, "r");
+/* Check if file opened successfully */
+if (file == NULL)
+{
+printf("\nUnable to open file.\n");
+printf("Please check if file exists and you have read privilege.\n");
+exit(EXIT_FAILURE);
+}
+/*
+* Logic to count characters, words and lines.
+*/
+characters = words = lines = 0;
+while ((ch = fgetc(file)) != EOF)
+{
+
+characters++;
+/* Check new line */
+if (ch == '\n' || ch == '\0')
+lines++;
+/* Check words */
+if (ch == ' ' || ch == '\t' || ch == '\n' || ch == '\0')
+words++;
+}
+/* Increment words and lines for last word */
+if (characters > 0)
+{
+words++;
+lines++;
+}
+/* Print file statistics */
+printf("\n");
+printf("Total characters = %d\n", characters);
+
+printf("Total words                      = %d\n", words);
+printf("Total lines                      = %d\n", lines);
+/* Close files to release resources */
+fclose(file);
+return 0;
+}
+
+Assignment No 17 :
+Write a C program that behaves like a shell (command interpreter). It
+has its own prompt say “NewShell$”. Any normal shell command is
+executed from your shell by starting a child process to execute the
+system program corresponding to the command. It should additionally
+interpret the following command. i) list f - print name of all files in
+directory ii) list n - print number of all entries iii) list i - print name and
+inode of all files
+Solution :
+Everything in one file along with recursive program also extra one :
+**
+* C program to list all files and sub-directories in a directory.
+*/
+#include <stdio.h>
+#include <sys/types.h>
+#include <dirent.h>
+void listFiles(const char *path);
+int main()
+{
+// Directory path to list files
+
+char path[100];
+// Input path from user
+printf("Enter path to list files: ");
+scanf("%s", path);
+listFiles(path);
+return 0;
+}
+/**
+* Lists all files and sub-directories at given path.
+*/
+void listFiles(const char *path)
+{
+struct dirent *dp;
+DIR *dir = opendir(path);
+// Unable to open directory stream
+
+if (!dir)
+return;
+while ((dp = readdir(dir)) != NULL)
+{
+printf("%s\n", dp->d_name);
+}
+// Close directory stream
+closedir(dir);
+}
+/**
+* C program to list contents of a directory recursively.
+*/
+#include <stdio.h>
+#include <string.h>
+void listFilesRecursively(char *path);
+
+int main()
+{
+// Directory path to list files
+char path[100];
+// Input path from user
+printf("Enter path to list files: ");
+scanf("%s", path);
+listFilesRecursively(path);
+return 0;
+}
+/**
+* Lists all files and sub-directories recursively
+* considering path as base path.
+*/
+void listFilesRecursively(char *basePath)
+
+{
+char path[1000];
+struct dirent *dp;
+DIR *dir = opendir(basePath);
+// Unable to open directory stream
+if (!dir)
+return;
+while ((dp = readdir(dir)) != NULL)
+{
+if (strcmp(dp->d_name, ".") != 0 && strcmp(dp->d_name, "..") !=
+0)
+{
+printf("%s\n", dp->d_name);
+// Construct new path from our base path
+strcpy(path, basePath);
+strcat(path, "/");
+strcat(path, dp->d_name);
+
+listFilesRecursively(path);
+}
+}
+closedir(dir);
+}}
+
+Assignment No : 18
+Write a C program that behaves like a shell (command interpreter). It
+has its own prompt say “NewShell$”. Any normal shell command is
+executed from your shell by starting a child process to execute the
+system program corresponding to the command. It should additionally
+interpret the following command. i) typeline +10 - print first 10 lines of
+file
+ii) typeline -20 - print last 20 lines of file
+iii) typeline a - print all lines of file
+Solution :
+Note :   first one is given try for other two
+//c program to print given number of lines from beginning of a file
+//file name and number of lines must be supply as command line
+argument
+#include <stdio.h>
+int main(int argc, char * argv[])
+{
+FILE                                                                         *   fp;            // file pointer
+char                                                                         *   line = NULL;
+int                                                                          len  = 0;
+
+int cnt = 0;
+if( argc < 3)
+{
+printf("Insufficient Arguments!!!\n");
+printf("Please use \"program-name file-name N\" format.\n");
+return -1;
+}
+// open file
+fp = fopen(argv[1],"r");
+// checking for file is exist or not
+if( fp == NULL )
+{
+printf("\n%s file can not be opened !!!\n",argv[1]);
+return 1;
+}
+// read lines from file one by one
+
+while (getline(&line, &len, fp) != -1)
+{
+cnt++;
+if ( cnt > atoi(argv[2]) )
+break;
+printf("%s",line); fflush(stdout);
+}
+// close file
+fclose(fp);
+return 0;
+}
+Output
+First Run:
+Terminal command : ./prg1 file1.txt
+Insufficient Arguments!!!
+Please use "program-name file-name N" format.
+Second Run:
+
+TerAssignment :19
+Write a C program that behaves like a shell (command interpreter). It
+has its own prompt say “NewShell$”.Any normal shell command is
+executed from your shell by starting a child process to execute the
+system program corresponding to the command. It should i) additionally
+interpret the following command. ii) search f - search first occurrence of
+pattern in filename iii) search c - count no. of occurrences of pattern in
+filename iv) search a - search all occurrences of pattern in filename
+#include <stdio.h>
+#include <string.h>
+int match(char [], char []);
+int main() {
+char a[100], b[100];
+int position;
+printf("Enter some text\n");
+gets(a);
+printf("Enter a string to find\n");
+gets(b);
+position = match(a, b);
+if (position != -1) {
+printf("Found at location: %d\n", position + 1);
+}
+else {
+
+printf("Not found.\n");
+}
+return 0;
+}
+int match(char text[], char pattern[]) {
+int c, d, e, text_length, pattern_length, position = -1;
+text_length                                                = strlen(text);
+pattern_length = strlen(pattern);
+if (pattern_length > text_length) {
+return -1;
+}
+for (c = 0; c <= text_length - pattern_length; c++) {
+position = e = c;
+for (d = 0; d < pattern_length; d++) {
+if (pattern[d] == text[e]) {
+e++;
+}
+else {
+break;
+}
+}
+if (d == pattern_length) {
+return position;
+}
+}
+return -1;
+}
+
+Output of program:
+Download Pattern matching program.
+C program for pattern matching using pointers
+#include<stdio.h>
+int match(char*, char*);
+int main()
+{
+char a[100], b[100];
+int position;
+printf("Enter some text\n");
+gets(a);
+printf("Enter a string to find\n");
+gets(b);
+position = match(a, b);
+if(position!=-1)
+printf("Found at location %d\n", position+1);
+else
+printf("Not found.\n");
+
+return 0;
+}
+int match(char *a, char *b)
+{
+int c;
+int position = 0;
+char *x, *y;
+x = a;
+y = b;
+while(*a)
+{
+while(*x==*y)
+{
+x++;
+y++;
+if(*x=='\0'||*y=='\0')
+break;
+}
+if(*y=='\0')
+break;
+a++;
+position++;
+x = a;
+y = b;
+}
+if(*a)
+return position;
+
+else
+return -1;
+}
+
+Assignment No :20
+Write a C program which receives file names as command line
+arguments and display those filenames in ascending order according to
+their sizes. i) (e.g $ a.out a.txt b.txt c.txt, …)
+Assignment No 21
+/*Write a C program which create a child process which catch a signal
+sighup,sigint and sigquit.The parent process send a sighup or sigint
+signal after every 3 seconds ,at the end of 30 second parent send
+sigquit signal to child and child terminates by displaying message
+"My Daddy has killed me!!!".*/
+#include<stdio.h>
+#include<signal.h>
+#include<stdlib.h>
+void sighup();
+void sigint();
+void sigquit();
+main()
+{
+int pid,i,j,k;
+if ((pid = fork() ) < 0)
+{
+perror("fork");
+exit(1);
+}
+if ( pid == 0)
+{
+signal(SIGHUP,sighup);
+signal(SIGINT,sigint);
+
+signal(SIGQUIT,sigquit);
+for(;;);
+}
+else
+{
+j=0;
+for(i=1;i<=5;i++)
+{
+j++;
+printf("PARENT: sending SIGHUP Signal  :      %d\n",j);
+kill(pid,SIGHUP);
+sleep(3);
+printf("PARENT: sending  signal :             %d\n",j);
+kill (pid,SIGINT);
+sleep(3);
+}
+sleep(3);
+printf("Parent sending SIGQUIT\n");
+kill(pid,SIGQUIT);
+}
+}
+void sighup()
+{
+signal(SIGHUP,sighup);
+printf("Child: I have received  sighup\n");
+}
+void sigint()
+{
+signal(SIGINT,sigint);
+printf("Child: I have received sighINT\n");
+}
+void sigquit()
+{
+printf("My daddy has killed me\n");
+exit(0);
+
+}
+
+Assignment No :22
+Write a C program to implement the following unix/linux command (use
+fork, pipe and exec system call). Your program should block the signal
+Ctrl-C and Ctrl-\ signal during the execution. i. ls -l | wc -l
+#include <iostream>
+#include <string>
+// Required by for routine
+#include <sys/types.h>
+06                                                                       #include <unistd.h>
+07
+08                                                                       #include <stdlib.h>           // Declaration for exit()
+09
+10                                                                       using namespace std;
+11
+12                                                                       int globalVariable = 2;
+13
+14                                                                       main()
+15                                                                       {
+16                                                                       string sIdentifier;
+17                                                                       int    iStackVariable = 20;
+18
+19                                                                       pid_t pID = fork();
+20                                                                       if (pID == 0)                 // child
+21                                                                       {
+22                                                                                                     // Code only executed by child process
+23
+
+24                                                      sIdentifier = "Child Process: ";
+25                                                      globalVariable++;
+26                                                      iStackVariable++;
+27                                                      }
+28                                                      else if (pID < 0)                                         // failed to fork
+29                                                      {
+30                                                      cerr << "Failed to fork" << endl;
+31                                                      exit(1);
+32                                                      // Throw exception
+33                                                      }
+34                                                      else                                                      // parent
+35                                                      {
+36                                                      // Code only executed by parent process
+37
+38                                                      sIdentifier = "Parent Process:";
+39                                                      }
+40
+41                                                      // Code executed by both parent and child.
+42
+43                                                      cout << sIdentifier;
+44                                                      cout << " Global variable: " << globalVariable;
+45                                                      cout << " Stack variable: "  << iStackVariable << endl;
+46                                                      }
+Compile: g++ -o ForkTest ForkTest.cpp
+Run: ForkTest
+Parent Process: Global variable: 2 Stack variable: 20
+Child Process:  Global variable: 3 Stack variable: 21
+
+Assignment NO 23
+Write a C Program that demonstrates redirection of standard output to a
+file.
+#include<stdlib.h>
+#include<stdio.h>
+#include<string.h>
+main(int argc, char *argv[])
+{
+char d[50];
+if(argc==2)
+{
+bzero(d,sizeof(d));
+strcat(d,"ls ");
+strcat(d,"> ");
+strcat(d,argv[1]);
+system(d);
+}
+else
+printf("\nInvalid No. of inputs");
+}
+/*output:-
+[root@localhost unix]# cc slip23.c
+
+[root@localhost unix]# ls
+                            exitdemo.c      hello                  orphan.c                    signaldemo.c~  x.out
+exitprg.c                   hello1                                 orphan.c~                   slip10.c               zombie.c
+exitprg.c~                  hello1.c                               p.c                         slip10.c~              zombie.c~
+f1.txt                      hello.c                                p.c~                        slip16.c
+f1.txt~                                                            hello.txt     pipedemo.c    slip16.c~
+f3                                                                 hello.txt~    pipedemo.c~   slip19.c
+                            [root@localhost unix]# cat >file3
+[6]+  Stopped                                                      cat > file3
+                            [root@localhost unix]# ./a.out file3
+                            [root@localhost unix]# cat file3
+                            exitdemo.c      hello                  orphan.c                    signaldemo.c~  x.out
+exitprg.c                   hello1                                 orphan.c~                   slip10.c               zombie.c
+exitprg.c~                  hello1.c                               p.c                         slip10.c~              zombie.c~
+f1.txt                      hello.c                                p.c~                        slip16.c
+f1.txt~                                                            hello.txt     pipedemo.c    slip16.c~
+f3                                                                 hello.txt~    pipedemo.c~   slip19.c
+*/
+
+Assignment No 24
+24. Write a program that illustrates how to execute two commands
+concurrently with a pipe
+#include<stdio.h>
+#include <unistd.h>
+#include <sys/types.h>
+#include <stdlib.h>
+int main()
+{
+int pfds[2];
+char buf[80];
+if(pipe(pfds)==-1)
+{
+perror("pipe failed");
+exit(1);
+}
+if(!fork())
+{
+close(1);
+dup(pfds[1]);
+system("ls -l");
+}
+else
+{
+printf("parent reading from pipe \n");
+while(read(pfds[0],buf,80))
+printf("%s \n" ,buf);
+}
+}
+
+Assignment No :25
+Write a C program that illustrates suspending and resuming processes
+using signals.
+#include <stdio.h>
+#include <ospace/unix.h>
+int child_function()
+{
+while (true) // Loop forever.
+{
+Printf("Child loop\n");
+os_this_process::sleep( 1 );
+}
+return 0; // Will never execute.
+}
+int main()
+{
+os_unix_toolkit initialize;
+os_process child ( child function ); // Spawn child.
+os_this_process::sleep( 4 );
+printf("child.suspend()\n");
+child.suspend();
+printf("Parent sleeps for 4 seconds\n");
+os_this_process::sleep (4);
+printf("child.resume()");
+child.resume ();
+os_this_process::sleep (4);
+printf("child.terminate()");
+child.terminate ();
+printf("Parent finished");
+return 0;
+}
+
+Output:
+Child loop
+Child loop
+Child loop
+Child loop
+Child loop
+child.suspend()
+Parent sleeps for 4 seconds
+child.resume()
+Child loop
+Child loop
+Child loop
+Child loop
+child.terminate()
+Child loop
+Parent finished
+
+Assignment NO :26
+Write a C program that illustrates inters process communication using
+shared memory.
+#include<stdio.h>
+#include<sys/types.h>
+#include<sys/ipc.h>
+#include<sys/shm.h>
+Struct country
+{
+Char name[30];
+Char capital_city [30];
+Char currency[30];
+Int population;
+};
+Int main(int argc,char*argv[])
+{
+Int shm_id;
+Char*shm_addr;
+Int*countries_num;
+Struct country*countries;
+Struct shmid_ds shm_desc;
+Shm_id=shmget(100,2048,IPC_CREAT|IPC_EXCL\0600);
+If(shm_id==-1){
+Perror(“main:shmget:”);
+Exit(1);
+}
+Shm_addr=shmat(shm_id,NULL,0);
+If(!shm_addr){
+Perror(“main:shmat:”);
+Exit(1);
+}
+Countries_num=(int*)shm_addr;
+*countries_num=0;
+
+Countries=(struct country*)((void*)shm_addr sizeof(int));
+Strcpy(countries[0],name,”U.S.A”);
+Strcpy(countries[0],capital_city,”WASHINGTON”);
+Strcpy(countries[0],currency,”U.S.DOLLAR”);
+Countries[0].population=250000000;
+( countries_num)  ;
+Strcpy(countries[1].name,”israel”);
+Strcpy(countries[1].capital_city,”jerushalem”);
+Strcpy(countries[1].currency,”NEW ISRAEL SHEKED”);
+Countries[1].population=6000000;
+(*countries_num)  ;
+Strcpy(countries[2].name,”France”);
+Strcpy(countries[2].capital_city,”paris”);
+Strcpy(countries[2].currency,”Frank”);
+Countries[2].population=60000000;
+(*countries_num)  ;
+For(i=0;i<(*countries_num);i  )
+{
+Printf(“country%d:\n”,i 1);
+Printf(“name:%d:\n”,i 1);
+Printf(“currency:%s:\n”,countries[i].currency);
+Printf(“population:%d:\n”,countries[i].population);
+}
+If(shmdt(shm_addr)==-1){
+Perror(“main:shmdt:”);
+}
+If(shmctl(shm_id,IPC_RMID,&SHM_DESC)==-1)
+{
+Perror(“main:shmctl:”);
+}
+return 0;
+}
+Output:
+Student@ubuntu:~$gcc shm.c
+Student@ubuntu:~$ ./a.out
+
+Shared memory ID=65537 child pointer 3086680064
+Child value =1
+Shared memory ID=65537 child pointer 3086680064
+Parent value=1
+Parent value=42
+Child value=42
